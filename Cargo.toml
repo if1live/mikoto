@@ -1,0 +1,10 @@
+[package]
+name = "mikoto"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+lambda_http = "0.4.1"
+lambda_runtime = "0.4.1"
+serde_json = "1.0"
+tokio = "1.15.0"

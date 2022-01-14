@@ -1,0 +1,14 @@
+service: mikoto
+
+provider:
+  name: aws
+  runtime: go1.x
+  memorySize: 128
+  region: ap-northeast-2
+
+package:
+  artifact: artifact.zip
+
+functions:
+  hello:
+    handler: mikoto
