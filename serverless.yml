@@ -3,10 +3,6 @@ service: mikoto-arm64
 provider:
   name: aws
 
-  # x86_64
-  # runtime: go1.x
-
-  # aarch64
   runtime: provided.al2
   architecture: arm64
 
@@ -14,8 +10,14 @@ provider:
   region: ap-northeast-1
 
 package:
-  artifact: artifact_aarch64.zip
+  individually: true
 
 functions:
-  hello:
-    handler: mikoto
+  main:
+    handler: main
+    package:
+      artifact: ./artifacts/artifact_main.zip
+  sub:
+    handler: sub
+    package:
+      artifact: ./artifacts/artifact_sub.zip

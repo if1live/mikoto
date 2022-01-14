@@ -3,25 +3,24 @@
 set -exuo pipefail
 
 # aarch64,x86_64
-export ARCH=$1
-export ARTIFACT_ZIP=artifact_$1.zip
-
-export PLATFORM=$ARCH-unknown-linux-musl
+export PLATFORM=aarch64-unknown-linux-musl
 
 function build {
+	TARGET=$1
 	# release로 뽑지 않으면 바이너리 크기가 크다
-	cargo build --target=$PLATFORM --release
+	cargo build --bin $1 --target=$PLATFORM --release
 }
 
-function archive_aarch64 {
-	cp target/$PLATFORM/release/mikoto target/$PLATFORM/release/bootstrap
-	zip -r -j $ARTIFACT_ZIP target/$PLATFORM/release/bootstrap
+function archive {
+	TARGET=$1
+	mkdir -p artifacts/$TARGET && rm -rf artifacts/$TARGET/*
+	cp target/$PLATFORM/release/$TARGET artifacts/$TARGET/bootstrap
+	rm -rf artifacts/artifact_$TARGET.zip
+	zip -r -j artifacts/artifact_$TARGET.zip artifacts/$TARGET/bootstrap
 }
 
-function archive_x86_64 {
-	zip -r -j $ARTIFACT_ZIP target/$PLATFORM/release/mikoto
-}
+build main
+build sub
 
-build
-rm -rf $ARTIFACT_ZIP
-archive_$ARCH
+archive main
+archive sub
