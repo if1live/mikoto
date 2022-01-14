@@ -22,7 +22,19 @@ impl IntoResponse for ResponseWrapper {
     }
 }
 
-async fn handle_http(request: Request, _: Context) -> Result<impl IntoResponse, Error> {
+async fn handle_http(request: Request, context: Context) -> Result<impl IntoResponse, Error> {
+    let response = match request.uri().path() {
+        "/" => handle_foo(request, context).await,
+        _ => handle_not_found(request, context).await,
+    };
+
+    match response {
+        Ok(data) => Ok(ResponseWrapper { data }),
+        Err(error) => Err(error.into()),
+    }
+}
+
+async fn handle_foo(request: Request, _: Context) -> http::Result<Response<Body>> {
     let name = request
         .query_string_parameters()
         .get("name")
@@ -41,9 +53,11 @@ async fn handle_http(request: Request, _: Context) -> Result<impl IntoResponse, 
         .header("x-hello", "world")
         .status(status)
         .body(Body::from(body.to_string()));
+    response
+}
 
-    match response {
-        Ok(data) => Ok(ResponseWrapper { data }),
-        Err(error) => Err(error.into()),
-    }
+async fn handle_not_found(_: Request, _: Context) -> http::Result<Response<Body>> {
+    let body = json!({"message": "not found"});
+    let response = Response::builder().body(Body::from(body.to_string()));
+    response
 }
