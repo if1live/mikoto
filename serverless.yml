@@ -1,4 +1,4 @@
-service: mikoto-arm64
+service: mikoto
 
 provider:
   name: aws
@@ -13,10 +13,16 @@ package:
   individually: true
 
 functions:
-  main:
+  http:
     handler: main
     package:
       artifact: ./artifacts/artifact_main.zip
+    events:
+      - httpApi: '*'
+  demo:
+    handler: sub
+    package:
+      artifact: ./artifacts/artifact_sub.zip
   sub:
     handler: sub
     package:
