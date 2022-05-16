@@ -10,6 +10,10 @@
       "dependsOn": ["build", "^test"],
       "outputs": []
     },
+    "artifact": {
+      "dependsOn": ["build", "^artifact"],
+      "outputs": []
+    },
     "lint": {
       "outputs": []
     }

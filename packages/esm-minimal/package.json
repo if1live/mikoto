@@ -12,6 +12,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "artifact": "pnpm build",
     "check:watch": "tsc --watch",
     "clean": "rimraf dist output .turbo",
     "test": "mocha dist/**/*.test.{js,mjs}"

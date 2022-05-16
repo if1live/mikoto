@@ -4,7 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo TODO"
+    "build": "cargo build",
+    "artifact": "bash ./scripts/build_artifact.sh",
+    "test": "cargo test",
+    "clean": "cargo clean && rimraf artifacts"
   },
   "author": "",
   "license": "ISC"

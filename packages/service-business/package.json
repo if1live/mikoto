@@ -12,8 +12,9 @@
   },
   "scripts": {
     "build": "tsc",
+    "artifact": "bash ./scripts/build_artifact.sh",
     "check:watch": "tsc --watch",
-    "clean": "rimraf dist output .serverless .turbo",
+    "clean": "rimraf dist artifacts .serverless .turbo",
     "test": "mocha dist/**/*.test.{js,mjs}",
     "deploy": "sls deploy"
   },

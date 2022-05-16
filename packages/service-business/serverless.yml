@@ -41,13 +41,7 @@ provider:
       Resource: "*"
 
 package:
-  patterns:
-    - "!**"
-    - "!node_modules/**"
-    - output/index.js
-    - output/package.json
-    - output/stub/*
-    - output/stub1/*
+  artifact: ./artifacts/artifact.zip
 
 functions:
   http_hello:

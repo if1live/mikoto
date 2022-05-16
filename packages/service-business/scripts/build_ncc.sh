@@ -3,7 +3,7 @@
 
 set -exuo pipefail
 
-OUT=output
+OUT=artifacts/ncc
 
 pnpm exec ncc build ./src/index.ts \
 	--external better-sqlite3 \
