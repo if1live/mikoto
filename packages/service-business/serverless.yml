@@ -45,7 +45,7 @@ package:
 
 functions:
   http_hello:
-    handler: output/index.http_hello
+    handler: index.http_hello
     url:
       cors: true
     events:
@@ -53,7 +53,7 @@ functions:
           method: "*"
           path: /hello/{pathname+}
   http_healthcheck:
-    handler: output/index.http_healthcheck
+    handler: index.http_healthcheck
     url:
       cors: true
     events:
@@ -62,17 +62,17 @@ functions:
           path: /healthcheck/{pathname+}
 
   ws_connect:
-    handler: output/index.ws_connect
+    handler: index.ws_connect
     events:
       - websocket:
           route: $connect
   ws_disconnect:
-    handler: output/index.ws_disconnect
+    handler: index.ws_disconnect
     events:
       - websocket:
           route: $disconnect
   ws_dispatch:
-    handler: output/index.ws_dispatch
+    handler: index.ws_dispatch
     events:
       - websocket:
           route: $default
