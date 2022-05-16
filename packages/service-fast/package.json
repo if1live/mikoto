@@ -7,7 +7,7 @@
     "build": "cargo build",
     "artifact": "bash ./scripts/build_artifact.sh",
     "test": "cargo test",
-    "clean": "cargo clean && rimraf artifacts"
+    "clean": "cargo clean && rimraf artifacts .turbo"
   },
   "author": "",
   "license": "ISC"
