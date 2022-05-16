@@ -40,6 +40,9 @@ provider:
         - "dynamodb:*"
       Resource: "*"
 
+  layers:
+    - arn:aws:lambda:${self:provider.region}:943013980633:layer:SentryNodeServerlessSDK:65
+
 package:
   artifact: ./artifacts/artifact.zip
 
