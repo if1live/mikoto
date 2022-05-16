@@ -1,0 +1,6 @@
+services:
+  business:
+    path: packages/service-business
+
+  fast:
+    path: packages/service-fast

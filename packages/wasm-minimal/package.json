@@ -1,0 +1,11 @@
+{
+  "name": "@mikoto/wasm-minimal",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo TODO"
+  },
+  "author": "",
+  "license": "ISC"
+}

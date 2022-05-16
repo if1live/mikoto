@@ -2,13 +2,55 @@
   "name": "mikoto",
   "version": "1.0.0",
   "description": "",
+  "homepage": "https://github.com/if1live/mikoto#readme",
+  "bugs": {
+    "url": "https://github.com/if1live/mikoto/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/if1live/mikoto.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node packages/backend/output/index.js",
+    "check:watch": "tsc --build tsconfig.project.json -w -v",
+    "build": "tsc --build tsconfig.project.json -v",
+    "test": "pnpm -r test",
+    "turbo": "turbo run",
+    "clean": "pnpm -r clean",
+    "deploy": "serverless deploy"
   },
-  "author": "",
-  "license": "ISC",
+  "dependencies": {
+    "@aws-sdk/client-apigatewaymanagementapi": "^3.87.0",
+    "@aws-sdk/client-dynamodb": "^3.87.0",
+    "@aws-sdk/client-lambda": "^3.87.0",
+    "@aws-sdk/client-sqs": "^3.87.0",
+    "@tinyhttp/app": "^2.0.20",
+    "@tinyhttp/router": "^2.0.4",
+    "ioredis": "^5.0.4",
+    "knex": "^2.0.0",
+    "mysql2": "^2.3.3",
+    "rambda": "^7.1.4",
+    "tslib": "^2.4.0"
+  },
   "devDependencies": {
-    "serverless": "^2.71.0"
+    "@serverless/compose": "^1.0.3",
+    "@types/aws-lambda": "^8.10.97",
+    "@types/mocha": "^9.1.1",
+    "@types/node": "^16.11.7",
+    "expect": "^28.1.0",
+    "mocha": "^10.0.0",
+    "rimraf": "^3.0.2",
+    "serverless": "^3.17.0",
+    "ts-node": "^10.7.0",
+    "turbo": "^1.2.9",
+    "typescript": "4.7.1-rc"
+  },
+  "engines": {
+    "node": ">=16",
+    "pnpm": ">=6"
   }
 }

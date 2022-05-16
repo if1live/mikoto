@@ -1,0 +1,28 @@
+{
+  "name": "@mikoto/service-business",
+  "version": "0.0.1",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "build": "tsc",
+    "check:watch": "tsc --watch",
+    "clean": "rimraf dist output .serverless .turbo",
+    "test": "mocha dist/**/*.test.{js,mjs}",
+    "deploy": "sls deploy"
+  },
+  "dependencies": {
+    "@mikoto/esm-minimal": "workspace:*",
+    "milliparsec": "^2.2.1",
+    "serverless-http": "^3.0.1"
+  },
+  "devDependencies": {
+    "@vercel/ncc": "^0.33.4"
+  }
+}

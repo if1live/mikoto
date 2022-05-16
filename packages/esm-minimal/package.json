@@ -1,0 +1,19 @@
+{
+  "name": "@mikoto/esm-minimal",
+  "version": "0.0.1",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "./dist/src/index.mjs",
+  "types": "./dist/src/index.d.mts",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "build": "tsc",
+    "check:watch": "tsc --watch",
+    "clean": "rimraf dist output .turbo",
+    "test": "mocha dist/**/*.test.{js,mjs}"
+  }
+}

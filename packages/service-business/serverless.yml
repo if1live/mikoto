@@ -1,0 +1,100 @@
+service: mikoto-business
+# app and org for use with dashboard.serverless.com
+#app: your-app-name
+#org: your-org-name
+
+frameworkVersion: "3"
+
+useDotenv: true
+
+provider:
+  name: aws
+  runtime: nodejs16.x
+
+  region: ap-northeast-1
+  stage: ${opt:stage, 'dev'}
+
+  memorySize: 512
+  architecture: arm64
+
+  logRetentionInDays: 14
+  versionFunctions: false
+
+  apiGateway:
+    minimumCompressionSize: 1024 # Enable gzip compression for responses > 1 KB
+
+  environment:
+    AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+    STAGE: ${self:provider.stage}
+
+    MYSQL_URI: ${env:MYSQL_URI}
+    REDIS_URI: ${env:REDIS_URI}
+
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "execute-api:ManageConnections"
+      Resource: "*"
+    - Effect: "Allow"
+      Action:
+        - "dynamodb:*"
+      Resource: "*"
+
+package:
+  patterns:
+    - "!**"
+    - "!node_modules/**"
+    - output/index.js
+    - output/package.json
+    - output/stub/*
+    - output/stub1/*
+
+functions:
+  http_hello:
+    handler: output/index.http_hello
+    url:
+      cors: true
+    events:
+      - httpApi:
+          method: "*"
+          path: /hello/{pathname+}
+  http_healthcheck:
+    handler: output/index.http_healthcheck
+    url:
+      cors: true
+    events:
+      - httpApi:
+          method: "*"
+          path: /healthcheck/{pathname+}
+
+  ws_connect:
+    handler: output/index.ws_connect
+    events:
+      - websocket:
+          route: $connect
+  ws_disconnect:
+    handler: output/index.ws_disconnect
+    events:
+      - websocket:
+          route: $disconnect
+  ws_dispatch:
+    handler: output/index.ws_dispatch
+    events:
+      - websocket:
+          route: $default
+
+resources:
+  Resources:
+    ConnectionTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ConnectionIds
+        AttributeDefinitions:
+          - AttributeName: connectionId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: connectionId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5

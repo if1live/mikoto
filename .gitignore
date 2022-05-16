@@ -1,6 +1,5 @@
-
-# Created by https://www.toptal.com/developers/gitignore/api/rust,visualstudiocode,node
-# Edit at https://www.toptal.com/developers/gitignore?templates=rust,visualstudiocode,node
+# Created by https://www.toptal.com/developers/gitignore/api/rust,visualstudiocode,node,serverless
+# Edit at https://www.toptal.com/developers/gitignore?templates=rust,visualstudiocode,node,serverless
 
 ### Node ###
 # Logs
@@ -158,6 +157,10 @@ Cargo.lock
 # MSVC Windows builds of rustc generate these, which store debugging information
 *.pdb
 
+### Serverless ###
+# Ignore build directory
+.serverless
+
 ### VisualStudioCode ###
 .vscode/*
 !.vscode/settings.json
@@ -178,7 +181,11 @@ Cargo.lock
 .ionide
 
 # Support for Project snippet scope
+.vscode/*.code-snippets
 
-# End of https://www.toptal.com/developers/gitignore/api/rust,visualstudiocode,node
+# Ignore code-workspaces
+*.code-workspace
+
+# End of https://www.toptal.com/developers/gitignore/api/rust,visualstudiocode,node,serverless
 
 artifacts/

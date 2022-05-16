@@ -16,6 +16,14 @@ indent_style = space
 indent_size = 4
 indent_style = space
 
+[*.{ts,js,mts,mjs,tsx,jsx}]
+indent_size = 2
+indent_style = tab
+
 [*.{yml,yaml}]
 indent_size = 2
 indent_style = space
+
+[.*rc]
+indent_style = space
+indent_size = 2

@@ -1,0 +1,5 @@
+packages:
+  - packages/esm-minimal
+  - packages/wasm-minimal
+  - packages/service-business
+  - packages/service-fast

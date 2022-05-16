@@ -1,0 +1,45 @@
+name: mikoto
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      # node
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - uses: pnpm/action-setup@v2.2.1
+        with:
+          version: 6.32.13
+
+      # rust
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: aarch64-unknown-linux-musl
+          override: true
+      # - uses: actions-rs/cargo@v1
+      #   with:
+      #     use-cross: true
+      #     command: build
+      #     args: --release --target aarch64-unknown-linux-musl
+
+      - uses: actions/cache@v2
+        id: cache
+        with:
+          path: ~/.local/share/pnpm/store/v3
+          key: pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm turbo build
+      - run: pnpm turbo test
+      - run: cd ./packages/service-business && ./scripts/build_ncc.sh
+
+      - run: cargo version

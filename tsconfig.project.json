@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "incremental": true,
+  },
+  "files": [],
+  "references": [
+    { "path": "packages/esm-minimal/tsconfig.json" },
+    { "path": "packages/service-business/tsconfig.json" }
+  ],
+}

@@ -1,13 +1,17 @@
-service: mikoto
+service: mikoto-fast
 
 provider:
   name: aws
-
   runtime: provided.al2
-  architecture: arm64
+
+  region: ap-northeast-1
+  stage: ${opt:stage, 'dev'}
 
   memorySize: 128
-  region: ap-northeast-1
+  architecture: arm64
+
+  logRetentionInDays: 14
+  versionFunctions: false
 
 package:
   individually: true
@@ -18,7 +22,7 @@ functions:
     package:
       artifact: ./artifacts/artifact_main.zip
     events:
-      - httpApi: '*'
+      - httpApi: "*"
   demo:
     handler: sub
     package:
