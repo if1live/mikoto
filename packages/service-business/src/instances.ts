@@ -11,16 +11,7 @@ if (process.env.npm_lifecycle_event === 'test') {
 }
 
 function openRedis(endpoint: string) {
-	// URL이 https로 시작하지 않으면 암호쪽까지 제대로 파싱 안하는듯?
-	const text = endpoint.replace('redis://', 'http://');
-	const url = new URL(text);
-
-	return new Redis({
-		host: url.hostname,
-		port: parseInt(url.port, 10),
-		password: url.password,
-		db: parseInt(url.pathname.substring(1), 10),
-	});
+	return new Redis(endpoint);
 }
 export const redis: RedisModule.Redis = process.env.NODE_ENV !== 'test'
 	? openRedis(process.env.REDIS_URI!)

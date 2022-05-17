@@ -1,0 +1,24 @@
+# https://github.com/fly-apps/redis/blob/main/fly.toml
+app = "mikoto-redis"
+
+[mounts]
+destination = "/data"
+source = "redis_server"
+
+[metrics]
+path = "/metrics"
+port = 9091
+
+[build]
+image = "flyio/redis:6.2.6"
+
+[[services]]
+internal_port = 6379
+protocol = "tcp"
+
+[[services.ports]]
+port = "23988"
+
+[[services.tcp_checks]]
+interval = 23988
+timeout = 2000
