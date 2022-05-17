@@ -1,0 +1,18 @@
+app = "mikoto-sqs"
+
+[build]
+image = "softwaremill/elasticmq-native:1.3.7"
+
+[[services]]
+internal_port = 9324
+protocol = "tcp"
+
+[[services.ports]]
+port = "19324"
+
+[[services]]
+internal_port = 9325
+protocol = "tcp"
+
+[[services.ports]]
+port = "19325"
