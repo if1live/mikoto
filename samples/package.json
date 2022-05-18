@@ -1,0 +1,33 @@
+{
+  "name": "mikoto",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/if1live/mikoto#readme",
+  "bugs": {
+    "url": "https://github.com/if1live/mikoto/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/if1live/mikoto.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node ./src/index.cjs",
+    "deploy": "serverless deploy"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.1137.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.97",
+    "@types/node": "^16.11.7",
+    "rimraf": "^3.0.2",
+    "serverless": "^3.17.0"
+  },
+  "engines": {
+    "node": ">=16",
+    "pnpm": ">=6 <7"
+  }
+}

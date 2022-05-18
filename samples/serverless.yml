@@ -1,0 +1,61 @@
+service: mikoto-sample
+# app and org for use with dashboard.serverless.com
+#app: your-app-name
+#org: your-org-name
+
+frameworkVersion: "3"
+
+useDotenv: true
+
+provider:
+  name: aws
+  runtime: nodejs16.x
+
+  region: ap-northeast-1
+  stage: ${opt:stage, 'dev'}
+
+  memorySize: 128
+  architecture: arm64
+
+  logRetentionInDays: 7
+  versionFunctions: false
+
+  timeout: 3
+
+  environment:
+    AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+    STAGE: ${self:provider.stage}
+
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "sqs:SendMessage"
+      Resource:
+        - ${self:custom.sqsDemo}
+
+package:
+  patterns:
+    - "!node_modules"
+    - "!package.json"
+    - "!pnpm-lock.yaml"
+    - src
+
+functions:
+  sqsEnqueue:
+    handler: src/index.sqs_enqueue
+  commonDequeue:
+    handler: src/index.common_dequeue
+    events:
+      - sqs:
+          arn: ${self:custom.sqsDemo}
+          enabled: true
+
+resources:
+  Resources:
+    DemoQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-${self:provider.stage}-demo
+
+custom:
+  sqsDemo: arn:aws:sqs:${self:provider.region}:${aws:accountId}:${self:service}-${self:provider.stage}-demo

@@ -1,0 +1,9 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3.10-management-alpine
+    ports:
+      # management: http://localhost:15672
+      - 15672:15672
+    environment:
+      RABBITMQ_DEFAULT_USER: guest-user
+      RABBITMQ_DEFAULT_PASS: guest-password
