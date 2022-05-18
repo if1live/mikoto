@@ -3,8 +3,16 @@ services:
     image: rabbitmq:3.10-management-alpine
     ports:
       # management: http://localhost:15672
-      - 15672:15672
+      - 1883:1883
       - 5672:5672
+      - 15672:15672
+      - 15674:15674
+      - 15675:15675
+      - 25672:25672
+      - 61613:61613
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - ./infra/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+      - ./infra/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins
