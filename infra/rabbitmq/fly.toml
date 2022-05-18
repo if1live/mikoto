@@ -1,0 +1,20 @@
+app = "mikoto-rabbitmq"
+
+[build]
+dockerfile = "Dockerfile"
+
+# amqp(rabbitmq)
+[[services]]
+internal_port = 5672
+protocol = "tcp"
+
+[[services.ports]]
+port = "47509"
+
+[[services]]
+internal_port = 15672
+protocol = "tcp"
+
+[[services.ports]]
+handlers = ["http"]
+port = "80"
