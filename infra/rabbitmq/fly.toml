@@ -11,6 +11,11 @@ protocol = "tcp"
 [[services.ports]]
 port = "47509"
 
+# 5671: amqps
+[[services.ports]]
+handlers = ["tls"]
+port = "5671"
+
 [[services]]
 internal_port = 15672
 protocol = "tcp"
