@@ -7,6 +7,9 @@ frameworkVersion: "3"
 
 useDotenv: true
 
+plugins:
+  - serverless-offline
+
 provider:
   name: aws
   runtime: nodejs16.x
