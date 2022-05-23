@@ -1,11 +1,12 @@
 #![deny(warnings)]
+use anyhow::Result;
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_lambda::Region;
 use aws_smithy_http::endpoint::Endpoint;
 use aws_types::{credentials::SharedCredentialsProvider, Credentials, SdkConfig};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::{error, sync::Arc};
+use std::sync::Arc;
 use warp::hyper::Uri;
 // use warp::Filter;
 
@@ -40,7 +41,7 @@ async fn main_http() {
     return;
 }
 
-async fn invoke_lambda(client: &aws_sdk_lambda::Client) -> Result<(), Box<dyn error::Error>> {
+async fn invoke_lambda(client: &aws_sdk_lambda::Client) -> Result<()> {
     let function_name = "mikoto-sample-dev-commonDequeue";
 
     // TODO:
