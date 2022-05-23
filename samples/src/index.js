@@ -1,7 +1,11 @@
 const AWS = require('aws-sdk');
+const amqplib = require('amqplib');
+const { setTimeout } = require('timers/promises');
 
-const region = process.env.AWS_REGION || 'us-west-1';
+const region = process.env.AWS_REGION || 'ap-northeast-1';
 const stage = process.env.STAGE || 'dev';
+
+const RABBITMQ_URI = process.env.RABBITMQ_URI || "amqp://guest:guest@127.0.0.1";
 
 const sqs = new AWS.SQS();
 
@@ -14,7 +18,6 @@ module.exports.sqs_enqueue = async (event, context) => {
 	const arnTokens = context.invokedFunctionArn.split(':');
 	const accountId = arnTokens[4];
 
-	// TODO: 계정 이름 교체
 	const queueUrl = `https://sqs.${region}.amazonaws.com/${accountId}/mikoto-sample-${stage}-demo`;
 
 	const now = new Date();
@@ -49,6 +52,51 @@ module.exports.sqs_enqueue = async (event, context) => {
 		};
 	}
 }
+
+/**
+ * @param {*} event
+ * @param {Context} context
+ */
+module.exports.amqp_enqueue = async (event, context) => {
+	const queue = 'hello';
+	const message_text = `${Date.now()}`;
+	const message_buffer = Buffer.from(message_text);
+
+	let connection = null;
+	try {
+		connection = await amqplib.connect(RABBITMQ_URI);
+
+		const channel = await connection.createChannel();
+		await channel.assertQueue(queue, {
+			durable: false
+		});
+
+		const result = channel.sendToQueue(queue, message_buffer);
+		// sendToQueue 이후에 delay를 넣어서 메세지를 보내기
+		await setTimeout(10);
+
+		return {
+			ok: true,
+			result: result,
+		};
+
+	} catch (e) {
+		console.error('error', e);
+		return {
+			ok: false,
+			error: {
+				name: e.name,
+				message: e.message,
+				stack: e.stack,
+			},
+		};
+
+	} finally {
+		if (connection) {
+			await connection.close();
+		}
+	}
+};
 
 /**
  * @param {*} event

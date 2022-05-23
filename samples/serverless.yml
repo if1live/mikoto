@@ -28,6 +28,7 @@ provider:
   environment:
     AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
     STAGE: ${self:provider.stage}
+    RABBITMQ_URI: ${env:RABBITMQ_URI}
 
   iamRoleStatements:
     - Effect: "Allow"
@@ -37,15 +38,16 @@ provider:
         - ${self:custom.sqsDemo}
 
 package:
-  patterns:
-    - "!node_modules"
-    - "!package.json"
-    - "!pnpm-lock.yaml"
-    - src
+  excludeDevDependencies: true
+  # 배포할때는 artifact만 활성화, 개발할때는 비활성화
+  # artifact가 켜져있으면 serverless-offline이 artifact의 압축을 풀어서 실행하려고한다
+  artifact: ./artifacts/artifact.zip
 
 functions:
   sqsEnqueue:
     handler: src/index.sqs_enqueue
+  amqpEnqueue:
+    handler: src/index.amqp_enqueue
   commonDequeue:
     handler: src/index.common_dequeue
     events:

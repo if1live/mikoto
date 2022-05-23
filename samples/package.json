@@ -14,16 +14,20 @@
   "author": "",
   "main": "index.js",
   "scripts": {
-    "start": "node ./src/index.cjs",
+    "start:node": "node ./src/index.js",
     "start:offline": "sls offline",
+    "clean": "rimraf artifacts",
     "deploy": "serverless deploy"
   },
   "dependencies": {
+    "amqplib": "^0.9.1",
     "aws-sdk": "^2.1137.0"
   },
   "devDependencies": {
+    "@types/amqplib": "^0.8.2",
     "@types/aws-lambda": "^8.10.97",
     "@types/node": "^16.11.7",
+    "@vercel/ncc": "^0.33.4",
     "rimraf": "^3.0.2",
     "serverless": "^3.17.0",
     "serverless-offline": "^8.8.0"
