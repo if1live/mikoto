@@ -1,8 +1,6 @@
 #![deny(warnings)]
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_lambda::Region;
-use aws_smithy_http::body::SdkBody;
-use aws_smithy_http::byte_stream::ByteStream;
 use aws_smithy_http::endpoint::Endpoint;
 use aws_types::{credentials::SharedCredentialsProvider, Credentials, SdkConfig};
 use serde::{Deserialize, Serialize};
@@ -31,11 +29,9 @@ async fn main_http() {
     //     .run(([0, 0, 0, 0, 0, 0, 0, 0], 8080))
     //     .await;
 
-    // TODO: real aws
+    // TODO: 디버깅용으로 양쪽 설정을 남겨둠
     let _region_config = build_region_config().await;
-
     let _offline_config = build_offline_config();
-    println!("{:?}", &_offline_config);
 
     let _client = aws_sdk_lambda::Client::new(&_offline_config);
     let _result = invoke_lambda(&_client).await;
@@ -55,20 +51,18 @@ async fn invoke_lambda(client: &aws_sdk_lambda::Client) -> Result<(), Box<dyn er
     });
 
     let text = serde_json::to_string(&command)?;
-    let _stream = ByteStream::new(SdkBody::from(text.as_str()));
-    // let response = client
-    //     .invoke_async()
-    //     .function_name(function_name)
-    //     .invoke_args(stream)
-    //     .send()
-    //     .await?;
-    let response = client.invoke().function_name(function_name).send().await?;
+    let blob = aws_smithy_types::Blob::new(text.as_bytes());
+    let response = client
+        .invoke()
+        .function_name(function_name)
+        .payload(blob)
+        .send()
+        .await?;
 
     println!("Response from invoke: {:#?}", response);
 
     Ok(())
 }
-
 
 fn build_offline_config() -> aws_types::SdkConfig {
     let region = Region::new("local");
