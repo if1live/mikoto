@@ -9,6 +9,8 @@ use aws_smithy_http::endpoint::Endpoint;
 use aws_types::{credentials::SharedCredentialsProvider, Credentials, SdkConfig};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::net::IpAddr;
+use std::str::FromStr;
 use std::{
     sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
@@ -31,15 +33,34 @@ async fn main() {
     let _config_region = MyAwsConfig::from_region().await;
     let _config_offline = MyAwsConfig::from_offline().await;
 
-    // main_http().await
-    main_lambda(&_config_offline).await
-    // let _x = main_consume();
-    // let _x = main_produce();
-    // return;
+    let config = _config_offline;
+
+    // async block으로 소유권을 넘긴다
+    let config_http = config.clone();
+    let config_amqp = config.clone();
+
+    let _handle_http = tokio::spawn(async move { main_http(&config_http).await });
+    let _handle_amqp = tokio::spawn(async move { main_amqp(&config_amqp).await });
+    let (_result_http, _result_amqp) = tokio::join!(_handle_http, _handle_amqp);
 }
 
 #[allow(dead_code)]
-fn main_consume() -> amiquip::Result<()> {
+async fn main_http(_config: &SdkConfig) {
+    // let routes = warp::any().map(|| "Hello, World!");
+
+    let index = warp::path::end().map(|| "hello world");
+    let demo_lambda = warp::path!("demo" / "lambda").map(|| "Hello, lambda!");
+
+    let routes = warp::get().and(index.or(demo_lambda));
+
+    // curl http://[::1]:8080/
+    let addr = IpAddr::from_str("::0").unwrap();
+    warp::serve(routes).run((addr, 8080)).await;
+}
+
+#[allow(dead_code)]
+async fn main_amqp(_config: &SdkConfig) -> amiquip::Result<()> {
+    // TODO: secure open?
     let mut connection = Connection::insecure_open(RABBITMQ_URI)?;
     let channel = connection.open_channel(None)?;
     let queue = channel.queue_declare("hello", QueueDeclareOptions::default())?;
@@ -49,6 +70,7 @@ fn main_consume() -> amiquip::Result<()> {
     for (i, message) in consumer.receiver().iter().enumerate() {
         match message {
             ConsumerMessage::Delivery(delivery) => {
+                println!("{:?}", delivery);
                 let body = String::from_utf8_lossy(&delivery.body);
                 println!("({:>3} Received [{}])", i, body);
                 consumer.ack(delivery)?;
@@ -61,34 +83,6 @@ fn main_consume() -> amiquip::Result<()> {
     }
 
     connection.close()
-}
-
-#[allow(dead_code)]
-fn main_produce() -> amiquip::Result<()> {
-    let mut connection = Connection::insecure_open(RABBITMQ_URI)?;
-    let channel = connection.open_channel(None)?;
-    let exchange = Exchange::direct(&channel);
-
-    let start = SystemTime::now();
-    let since_the_epoch = start
-        .duration_since(UNIX_EPOCH)
-        .expect("Time went backwards");
-    let body = format!("{:?}", since_the_epoch);
-
-    exchange.publish(Publish::new(body.as_bytes(), "hello"))?;
-
-    connection.close()
-}
-
-#[allow(dead_code)]
-async fn main_http() {
-    // Match any request and return hello world!
-    let routes = warp::any().map(|| "Hello, World!");
-
-    warp::serve(routes)
-        // ipv6 + ipv6 any addr
-        .run(([0, 0, 0, 0, 0, 0, 0, 0], 8080))
-        .await;
 }
 
 #[allow(dead_code)]
@@ -162,4 +156,46 @@ impl MyAwsLambda {
 
         Ok(())
     }
+}
+
+#[allow(dead_code)]
+fn main_consume() -> amiquip::Result<()> {
+    let mut connection = Connection::insecure_open(RABBITMQ_URI)?;
+    let channel = connection.open_channel(None)?;
+    let queue = channel.queue_declare("hello", QueueDeclareOptions::default())?;
+    let consumer = queue.consume(ConsumerOptions::default())?;
+    println!("Waiting for messages. Press Ctrl-C to exit.");
+
+    for (i, message) in consumer.receiver().iter().enumerate() {
+        match message {
+            ConsumerMessage::Delivery(delivery) => {
+                let body = String::from_utf8_lossy(&delivery.body);
+                println!("({:>3} Received [{}])", i, body);
+                consumer.ack(delivery)?;
+            }
+            other => {
+                println!("Consumer ended: ${:?}", other);
+                break;
+            }
+        }
+    }
+
+    connection.close()
+}
+
+#[allow(dead_code)]
+fn main_produce() -> amiquip::Result<()> {
+    let mut connection = Connection::insecure_open(RABBITMQ_URI)?;
+    let channel = connection.open_channel(None)?;
+    let exchange = Exchange::direct(&channel);
+
+    let start = SystemTime::now();
+    let since_the_epoch = start
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards");
+    let body = format!("{:?}", since_the_epoch);
+
+    exchange.publish(Publish::new(body.as_bytes(), "hello"))?;
+
+    connection.close()
 }
