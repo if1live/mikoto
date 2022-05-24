@@ -4,10 +4,13 @@ use amiquip::{
 };
 use anyhow::Result;
 use aws_config::meta::region::RegionProviderChain;
+use aws_lambda_events::event::rabbitmq::{RabbitMqBasicProperties, RabbitMqEvent, RabbitMqMessage};
 use aws_sdk_lambda::Region;
 use aws_smithy_http::endpoint::Endpoint;
 use aws_types::{credentials::SharedCredentialsProvider, Credentials, SdkConfig};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
+use std::collections::HashMap;
 use std::net::IpAddr;
 use std::str::FromStr;
 use std::{
@@ -24,6 +27,7 @@ struct Command {
     f_val: f32,
 }
 
+// TODO: 환경변수로 교체하기
 const RABBITMQ_URI: &'static str = "amqp://guest:guest@127.0.0.1";
 
 #[tokio::main]
@@ -46,7 +50,6 @@ async fn main() {
     let _reuslt_amqp = main_amqp(&config_amqp).await;
 }
 
-#[allow(dead_code)]
 async fn main_http(_config: &SdkConfig) -> Result<()> {
     // let routes = warp::any().map(|| "Hello, World!");
 
@@ -62,7 +65,6 @@ async fn main_http(_config: &SdkConfig) -> Result<()> {
     Ok(())
 }
 
-#[allow(dead_code)]
 #[allow(unused)]
 async fn main_amqp(config: &SdkConfig) -> Result<()> {
     let queue = "hello";
@@ -77,17 +79,54 @@ async fn main_amqp(config: &SdkConfig) -> Result<()> {
         match message {
             ConsumerMessage::Delivery(delivery) => {
                 let function_name = "mikoto-sample-dev-commonDequeue";
-                let body0 = delivery.body.clone();
-                // println!("aaa [{}] {}", i, String::from_utf8_lossy(&delivery.body));
+                let body_str = String::from_utf8_lossy(&delivery.body);
+
                 // TODO: 이벤트 규격이 람다 규격과 비슷하도록 만들기
+                let property = RabbitMqBasicProperties {
+                    content_type: Some("text/plain".to_string()),
+                    content_encoding: None,
+                    // TODO: delivery에서 뜯을수 있나?
+                    headers: HashMap::new(),
+                    delivery_mode: 1,
+                    priority: 34,
+                    correlation_id: None,
+                    reply_to: None,
+                    // TODO: 제대로된 값으로 만들기
+                    expiration: Some("60000".to_string()),
+                    message_id: None,
+                    // TODO: 현재시간 + 규격은 "Jan 1, 1970, 12:33:41 AM",
+                    timestamp: Some("Jan 1, 1970, 12:33:41 AM".to_string()),
+                    type_: None,
+                    user_id: None,
+                    app_id: None,
+                    cluster_id: None,
+                    body_size: 9999,
+                };
+
+                // TODO: data는 base64 json으로 추정
+                let message = RabbitMqMessage {
+                    basic_properties: property,
+                    data: Some(body_str.to_string()),
+                    redelivered: delivery.redelivered,
+                };
+
+                let event = RabbitMqEvent {
+                    event_source: Some("aws:rmq".to_string()),
+                    event_source_arn: Some("arn:aws:mq:us-east-1:123456789012:broker:mikoto:b-af0b701e-db74-11ec-9d64-0242ac120002".to_string()),
+                    messages_by_queue: HashMap::from([
+                        (delivery.routing_key.clone(), vec![message]),
+                    ]),
+                };
+
+                let event_text = json!(event);
+                let event_bytes = event_text.to_string().into_bytes();
 
                 // TODO: aws client 재사용하면 http 소켓 연결을 재사용할 수 있을거같은데
                 let config0 = config.clone();
                 let client = aws_sdk_lambda::Client::new(&config0);
                 let lambda = MyAwsLambda::new(client);
 
-                let payload = body0.as_slice();
-                lambda.invoke(function_name, payload).await;
+                let _result = lambda.invoke(function_name, &event_bytes).await;
 
                 consumer.ack(delivery)?;
             }
@@ -128,21 +167,18 @@ impl MyAwsConfig {
     }
 }
 
-#[allow(dead_code)]
 #[derive(Clone)]
 struct MyAwsLambda {
     client: aws_sdk_lambda::Client,
 }
 impl MyAwsLambda {
-    #[allow(dead_code)]
     pub fn new(client: aws_sdk_lambda::Client) -> Self {
         MyAwsLambda { client: client }
     }
 
-    #[allow(dead_code)]
     pub async fn invoke(&self, function_name: &str, payload: &[u8]) -> Result<()> {
         let blob = aws_smithy_types::Blob::new(payload);
-        let response = self
+        let _response = self
             .client
             .invoke()
             .function_name(function_name)
@@ -150,7 +186,7 @@ impl MyAwsLambda {
             .send()
             .await?;
 
-        println!("Response from invoke: {:#?}", response);
+        // println!("Response from invoke: {:#?}", response);
 
         Ok(())
     }
