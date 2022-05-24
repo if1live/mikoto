@@ -1,31 +1,18 @@
 #![deny(warnings)]
-use amiquip::{
-    Connection, ConsumerMessage, ConsumerOptions, Exchange, Publish, QueueDeclareOptions,
-};
+use amiquip::{Connection, ConsumerMessage, ConsumerOptions, QueueDeclareOptions};
 use anyhow::Result;
 use aws_config::meta::region::RegionProviderChain;
 use aws_lambda_events::event::rabbitmq::{RabbitMqBasicProperties, RabbitMqEvent, RabbitMqMessage};
 use aws_sdk_lambda::Region;
 use aws_smithy_http::endpoint::Endpoint;
 use aws_types::{credentials::SharedCredentialsProvider, Credentials, SdkConfig};
-use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
 use std::net::IpAddr;
 use std::str::FromStr;
-use std::{
-    sync::Arc,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::sync::Arc;
 use warp::hyper::Uri;
 use warp::Filter;
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Command {
-    s_val: String,
-    i_val: i32,
-    f_val: f32,
-}
 
 // TODO: 환경변수로 교체하기
 const RABBITMQ_URI: &'static str = "amqp://guest:guest@127.0.0.1";
@@ -195,46 +182,4 @@ impl MyAwsLambda {
 
         Ok(())
     }
-}
-
-#[allow(dead_code)]
-fn main_consume() -> amiquip::Result<()> {
-    let mut connection = Connection::insecure_open(RABBITMQ_URI)?;
-    let channel = connection.open_channel(None)?;
-    let queue = channel.queue_declare("hello", QueueDeclareOptions::default())?;
-    let consumer = queue.consume(ConsumerOptions::default())?;
-    println!("Waiting for messages. Press Ctrl-C to exit.");
-
-    for (i, message) in consumer.receiver().iter().enumerate() {
-        match message {
-            ConsumerMessage::Delivery(delivery) => {
-                let body = String::from_utf8_lossy(&delivery.body);
-                println!("({:>3} Received [{}])", i, body);
-                consumer.ack(delivery)?;
-            }
-            other => {
-                println!("Consumer ended: ${:?}", other);
-                break;
-            }
-        }
-    }
-
-    connection.close()
-}
-
-#[allow(dead_code)]
-fn main_produce() -> amiquip::Result<()> {
-    let mut connection = Connection::insecure_open(RABBITMQ_URI)?;
-    let channel = connection.open_channel(None)?;
-    let exchange = Exchange::direct(&channel);
-
-    let start = SystemTime::now();
-    let since_the_epoch = start
-        .duration_since(UNIX_EPOCH)
-        .expect("Time went backwards");
-    let body = format!("{:?}", since_the_epoch);
-
-    exchange.publish(Publish::new(body.as_bytes(), "hello"))?;
-
-    connection.close()
 }
