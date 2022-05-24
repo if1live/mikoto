@@ -8,7 +8,6 @@ use aws_sdk_lambda::Region;
 use aws_smithy_http::endpoint::Endpoint;
 use aws_types::{credentials::SharedCredentialsProvider, Credentials, SdkConfig};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use std::net::IpAddr;
 use std::str::FromStr;
 use std::{
@@ -40,12 +39,15 @@ async fn main() {
     let config_amqp = config.clone();
 
     let _handle_http = tokio::spawn(async move { main_http(&config_http).await });
-    let _handle_amqp = tokio::spawn(async move { main_amqp(&config_amqp).await });
-    let (_result_http, _result_amqp) = tokio::join!(_handle_http, _handle_amqp);
+
+    // amqp를 tokio::spawn으로 실행하려고 하면
+    // error: future cannot be sent between threads safely
+    // 가 발생하는게 어떻게 고칠지 몰라서 우회. 직접 띄우면 상관없더라
+    let _reuslt_amqp = main_amqp(&config_amqp).await;
 }
 
 #[allow(dead_code)]
-async fn main_http(_config: &SdkConfig) {
+async fn main_http(_config: &SdkConfig) -> Result<()> {
     // let routes = warp::any().map(|| "Hello, World!");
 
     let index = warp::path::end().map(|| "hello world");
@@ -56,23 +58,37 @@ async fn main_http(_config: &SdkConfig) {
     // curl http://[::1]:8080/
     let addr = IpAddr::from_str("::0").unwrap();
     warp::serve(routes).run((addr, 8080)).await;
+
+    Ok(())
 }
 
 #[allow(dead_code)]
-async fn main_amqp(_config: &SdkConfig) -> amiquip::Result<()> {
+#[allow(unused)]
+async fn main_amqp(config: &SdkConfig) -> Result<()> {
+    let queue = "hello";
+
     // TODO: secure open?
     let mut connection = Connection::insecure_open(RABBITMQ_URI)?;
     let channel = connection.open_channel(None)?;
-    let queue = channel.queue_declare("hello", QueueDeclareOptions::default())?;
+    let queue = channel.queue_declare(queue, QueueDeclareOptions::default())?;
     let consumer = queue.consume(ConsumerOptions::default())?;
-    println!("Waiting for messages. Press Ctrl-C to exit.");
 
     for (i, message) in consumer.receiver().iter().enumerate() {
         match message {
             ConsumerMessage::Delivery(delivery) => {
-                println!("{:?}", delivery);
-                let body = String::from_utf8_lossy(&delivery.body);
-                println!("({:>3} Received [{}])", i, body);
+                let function_name = "mikoto-sample-dev-commonDequeue";
+                let body0 = delivery.body.clone();
+                // println!("aaa [{}] {}", i, String::from_utf8_lossy(&delivery.body));
+                // TODO: 이벤트 규격이 람다 규격과 비슷하도록 만들기
+
+                // TODO: aws client 재사용하면 http 소켓 연결을 재사용할 수 있을거같은데
+                let config0 = config.clone();
+                let client = aws_sdk_lambda::Client::new(&config0);
+                let lambda = MyAwsLambda::new(client);
+
+                let payload = body0.as_slice();
+                lambda.invoke(function_name, payload).await;
+
                 consumer.ack(delivery)?;
             }
             other => {
@@ -82,17 +98,8 @@ async fn main_amqp(_config: &SdkConfig) -> amiquip::Result<()> {
         }
     }
 
-    connection.close()
-}
-
-#[allow(dead_code)]
-async fn main_lambda(config: &SdkConfig) {
-    let client = aws_sdk_lambda::Client::new(config);
-    let lambda = MyAwsLambda::new(client);
-    let result = lambda.invoke().await;
-
-    println!("{:?}", &result);
-    return;
+    connection.close()?;
+    Ok(())
 }
 
 struct MyAwsConfig {}
@@ -122,6 +129,7 @@ impl MyAwsConfig {
 }
 
 #[allow(dead_code)]
+#[derive(Clone)]
 struct MyAwsLambda {
     client: aws_sdk_lambda::Client,
 }
@@ -132,18 +140,8 @@ impl MyAwsLambda {
     }
 
     #[allow(dead_code)]
-    pub async fn invoke(&self) -> Result<()> {
-        let function_name = "mikoto-sample-dev-commonDequeue";
-
-        // TODO:
-        let command = json!({
-            "s_val": "Hello".to_string(),
-            "i_val": 42,
-            "f_val": 3.14,
-        });
-
-        let text = serde_json::to_string(&command)?;
-        let blob = aws_smithy_types::Blob::new(text.as_bytes());
+    pub async fn invoke(&self, function_name: &str, payload: &[u8]) -> Result<()> {
+        let blob = aws_smithy_types::Blob::new(payload);
         let response = self
             .client
             .invoke()
