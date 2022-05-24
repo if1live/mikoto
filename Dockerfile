@@ -17,7 +17,14 @@ COPY . .
 RUN cargo install --path .
 
 # Runtime image
-FROM debian:bullseye-slim
+FROM debian:bullseye
+
+# https://github.com/awslabs/aws-sdk-rust/discussions/434#discussioncomment-2090346
+# thread 'main' panicked at 'no CA certificates found',
+# /usr/local/cargo/registry/src/github.com-1ecc6299db9ec823/hyper-rustls-0.22.1/src/connector.rs:45:13
+RUN apt-get update
+RUN apt-get install -y ca-certificates
+RUN update-ca-certificates
 
 # Run as "app" user
 RUN useradd -ms /bin/bash app
