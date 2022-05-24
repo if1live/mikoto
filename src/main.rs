@@ -67,10 +67,15 @@ async fn main_http(_config: &SdkConfig) -> Result<()> {
 
 #[allow(unused)]
 async fn main_amqp(config: &SdkConfig) -> Result<()> {
+    // TODO: 큐 이름을 나눌 필요성?
     let queue = "hello";
 
-    // TODO: secure open?
-    let mut connection = Connection::insecure_open(RABBITMQ_URI)?;
+    let mut connection = if String::from(RABBITMQ_URI).starts_with("amqp://") {
+        Connection::insecure_open(RABBITMQ_URI)?
+    } else {
+        Connection::open(RABBITMQ_URI)?
+    };
+
     let channel = connection.open_channel(None)?;
     let queue = channel.queue_declare(queue, QueueDeclareOptions::default())?;
     let consumer = queue.consume(ConsumerOptions::default())?;
