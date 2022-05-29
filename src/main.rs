@@ -10,7 +10,7 @@ use lapin::{
 use std::env;
 use std::net::IpAddr;
 use std::str::FromStr;
-use tokio::time::{sleep, Duration};
+use tokio::join;
 use warp::Filter;
 
 mod my_aws;
@@ -24,13 +24,15 @@ extern crate log;
 
 #[tokio::main]
 async fn main() {
-    let config = MyAwsConfig::new("offline").await;
+    env_logger::init();
+
+    let config = MyAwsConfig::new("env").await;
     info!("aws_config={:?}", config);
 
     let definition = MikotoDefinition {
         queues: vec![QueueDefinition {
-            queue: "a".to_string(),
-            function_name: "a".to_string(),
+            queue: "hello".to_string(),
+            function_name: "mikoto-sample-dev-commonDequeue".to_string(),
         }],
     };
 
@@ -40,7 +42,8 @@ async fn main() {
     };
     info!("rabbitmq_uri={:?}", rabbitmq_uri);
 
-    let options = ConnectionProperties::default();
+    let options =
+        ConnectionProperties::default().with_executor(tokio_executor_trait::Tokio::current());
 
     let connection = Connection::connect(&rabbitmq_uri, options).await.unwrap();
 
@@ -48,12 +51,10 @@ async fn main() {
     let config_http = config.clone();
     let config_amqp = config.clone();
 
-    let _handle_http = tokio::spawn(async move { main_http(&config_http).await });
-    let _handle_http =
-        tokio::spawn(async move { main_amqp(config_amqp, connection, &definition).await });
-
-    // TODO: 루프 안멈추는 더 멀쩡한 방법?
-    sleep(Duration::from_millis(100000)).await;
+    let _result = join!(
+        main_http(&config_http),
+        main_amqp(config_amqp, connection, &definition),
+    );
 }
 
 #[allow(dead_code)]
@@ -84,44 +85,6 @@ async fn main_amqp(
 
     let queue_name = "hello";
     let function_name = "mikoto-sample-dev-commonDequeue";
-
-    /*
-    let config0 = config.clone();
-    let channel = connection.open_channel(None).unwrap();
-    let queue = channel
-        .queue_declare("TODO", QueueDeclareOptions::default())
-        .unwrap();
-    let consumer = queue.consume(ConsumerOptions::default()).unwrap();
-
-    let _handle = tokio::spawn(async move {
-        let queue_name = "hello";
-        let function_name = "mikoto-sample-dev-commonDequeue";
-
-        for (i, message) in consumer.receiver().iter().enumerate() {
-            match message {
-                ConsumerMessage::Delivery(delivery) => {
-                    let event = MyRabbitEvent::new(delivery.clone());
-                    let event_bytes = event.to_string().into_bytes();
-
-                    let client = aws_sdk_lambda::Client::new(&config0);
-                    let lambda = MyAwsLambda::new(client);
-                    // let _result = lambda.invoke(function_name, &event_bytes).await;
-
-                    consumer.ack(delivery).unwrap();
-                }
-                other => {
-                    println!("Consumer ended: ${:?}", other);
-                    break;
-                }
-            }
-        }
-        true
-    });
-    _handle.await;
-
-    // connection.close()?;
-    Ok(())
-    */
 
     let channel = connection.create_channel().await.unwrap();
 
@@ -162,8 +125,6 @@ async fn main_amqp(
 
         // Do something with the delivery data (The message payload)
         let event_text = MyRabbitEvent::to_string(&delivery);
-        println!("{}", event_text);
-
         let event_bytes = event_text.into_bytes();
 
         delivery
@@ -171,8 +132,8 @@ async fn main_amqp(
             .await
             .expect("Failed to ack send_webhook_event message");
 
-        // TODO: 더 멀쩡한 방법?
-        let config = MyAwsConfig::new("offline").await;
+        // TODO: 더 멀쩡하게 aws 설정 갖다쓰기?
+        let config = MyAwsConfig::new("env").await;
         let client = aws_sdk_lambda::Client::new(&config);
         let lambda = MyAwsLambda::new(client);
         let _result = lambda.invoke(function_name, &event_bytes).await;
