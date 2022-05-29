@@ -6,7 +6,6 @@ version = "0.1.0"
 [dependencies]
 amiquip = "0.4.2"
 anyhow = "1.0.57"
-aws-config = "0.12.0"
 aws-sdk-lambda = "0.12.0"
 aws-smithy-http = "0.42.0"
 aws-smithy-types = "0.42.0"

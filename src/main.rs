@@ -1,7 +1,6 @@
 #![deny(warnings)]
 use amiquip::{Connection, ConsumerMessage, ConsumerOptions, QueueDeclareOptions};
 use anyhow::Result;
-use aws_config::meta::region::RegionProviderChain;
 use aws_lambda_events::event::rabbitmq::{RabbitMqBasicProperties, RabbitMqEvent, RabbitMqMessage};
 use aws_sdk_lambda::Region;
 use aws_smithy_http::endpoint::Endpoint;
@@ -144,7 +143,6 @@ struct MyAwsConfig {}
 impl MyAwsConfig {
     pub async fn new(origin: &str) -> aws_types::SdkConfig {
         match origin {
-            "region" => MyAwsConfig::from_region().await,
             "env" => MyAwsConfig::from_env(),
             "offline" => MyAwsConfig::from_offline(),
             _ => MyAwsConfig::from_offline(),
@@ -188,11 +186,6 @@ impl MyAwsConfig {
         builder.set_region(region);
         builder.set_credentials_provider(Some(SharedCredentialsProvider::new(credentials)));
         builder.build()
-    }
-
-    pub async fn from_region() -> aws_types::SdkConfig {
-        let region_provider = RegionProviderChain::default_provider().or_else("ap-northeast-1");
-        aws_config::from_env().region(region_provider).load().await
     }
 }
 
