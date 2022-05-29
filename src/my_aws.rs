@@ -56,16 +56,18 @@ impl MyAwsConfig {
     }
 }
 
+#[allow(unused)]
 #[derive(Clone)]
 pub struct MyAwsLambda {
     client: aws_sdk_lambda::Client,
 }
 impl MyAwsLambda {
+    #[allow(unused)]
     pub fn new(client: aws_sdk_lambda::Client) -> Self {
         MyAwsLambda { client: client }
     }
 
-    #[allow(dead_code)]
+    #[allow(unused)]
     pub async fn invoke(&self, function_name: &str, payload: &[u8]) -> Result<()> {
         let blob = aws_smithy_types::Blob::new(payload);
         let _response = self
