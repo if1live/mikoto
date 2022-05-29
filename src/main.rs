@@ -8,22 +8,28 @@ use aws_smithy_http::endpoint::Endpoint;
 use aws_types::{credentials::SharedCredentialsProvider, Credentials, SdkConfig};
 use serde_json::json;
 use std::collections::HashMap;
+use std::env;
 use std::net::IpAddr;
 use std::str::FromStr;
 use std::sync::Arc;
 use warp::hyper::Uri;
 use warp::Filter;
 
-// TODO: 환경변수로 교체하기
-const RABBITMQ_URI: &'static str = "amqp://guest:guest@127.0.0.1";
+#[macro_use]
+extern crate log;
 
 #[tokio::main]
 async fn main() {
-    // TODO: 디버깅용으로 양쪽 설정을 남겨둠
-    let _config_region = MyAwsConfig::from_region().await;
-    let _config_offline = MyAwsConfig::from_offline().await;
+    env_logger::init();
 
-    let config = _config_offline;
+    let config = MyAwsConfig::new("env").await;
+    info!("aws_config={:?}", config);
+
+    let rabbitmq_uri = match env::var("RABBITMQ_URI") {
+        Ok(uri) => uri,
+        Err(_) => "amqp://guest:guest@127.0.0.1".to_string(),
+    };
+    info!("rabbitmq_uri={:?}", rabbitmq_uri);
 
     // async block으로 소유권을 넘긴다
     let config_http = config.clone();
@@ -34,9 +40,10 @@ async fn main() {
     // amqp를 tokio::spawn으로 실행하려고 하면
     // error: future cannot be sent between threads safely
     // 가 발생하는게 어떻게 고칠지 몰라서 우회. 직접 띄우면 상관없더라
-    let _reuslt_amqp = main_amqp(&config_amqp).await;
+    let _reuslt_amqp = main_amqp(&config_amqp, &rabbitmq_uri).await;
 }
 
+#[allow(dead_code)]
 async fn main_http(_config: &SdkConfig) -> Result<()> {
     // let routes = warp::any().map(|| "Hello, World!");
 
@@ -53,14 +60,14 @@ async fn main_http(_config: &SdkConfig) -> Result<()> {
 }
 
 #[allow(unused)]
-async fn main_amqp(config: &SdkConfig) -> Result<()> {
+async fn main_amqp(config: &SdkConfig, rabbitmq_uri: &str) -> Result<()> {
     // TODO: 큐 이름을 나눌 필요성?
     let queue = "hello";
 
-    let mut connection = if String::from(RABBITMQ_URI).starts_with("amqp://") {
-        Connection::insecure_open(RABBITMQ_URI)?
+    let mut connection = if String::from(rabbitmq_uri).starts_with("amqp://") {
+        Connection::insecure_open(rabbitmq_uri)?
     } else {
-        Connection::open(RABBITMQ_URI)?
+        Connection::open(rabbitmq_uri)?
     };
 
     let channel = connection.open_channel(None)?;
@@ -135,7 +142,16 @@ async fn main_amqp(config: &SdkConfig) -> Result<()> {
 
 struct MyAwsConfig {}
 impl MyAwsConfig {
-    pub async fn from_offline() -> aws_types::SdkConfig {
+    pub async fn new(origin: &str) -> aws_types::SdkConfig {
+        match origin {
+            "region" => MyAwsConfig::from_region().await,
+            "env" => MyAwsConfig::from_env(),
+            "offline" => MyAwsConfig::from_offline(),
+            _ => MyAwsConfig::from_offline(),
+        }
+    }
+
+    pub fn from_offline() -> aws_types::SdkConfig {
         let region = Region::new("local");
         let endpoint = Endpoint::immutable(Uri::from_static("http://localhost:3002/"));
         let credential = Credentials::new(
@@ -150,6 +166,27 @@ impl MyAwsConfig {
         builder.set_region(region);
         builder.set_endpoint_resolver(Some(Arc::new(endpoint)));
         builder.set_credentials_provider(Some(SharedCredentialsProvider::new(credential)));
+        builder.build()
+    }
+
+    pub fn from_env() -> aws_types::SdkConfig {
+        let aws_access_key_id = env::var("AWS_ACCESS_KEY_ID").unwrap();
+        let aws_access_secret_key = env::var("AWS_ACCESS_SECRET_KEY").unwrap();
+
+        let credentials = Credentials::new(
+            aws_access_key_id,
+            aws_access_secret_key,
+            None,
+            None,
+            "local",
+        );
+
+        let aws_region = env::var("AWS_REGION").unwrap();
+        let region = Region::new(aws_region);
+
+        let mut builder = SdkConfig::builder();
+        builder.set_region(region);
+        builder.set_credentials_provider(Some(SharedCredentialsProvider::new(credentials)));
         builder.build()
     }
 
@@ -168,18 +205,18 @@ impl MyAwsLambda {
         MyAwsLambda { client: client }
     }
 
-    pub async fn invoke(&self, function_name: &str, payload: &[u8]) -> Result<()> {
+    #[allow(dead_code)]
+    async fn invoke(&self, function_name: &str, payload: &[u8]) -> Result<()> {
         let blob = aws_smithy_types::Blob::new(payload);
         let _response = self
             .client
             .invoke()
             .function_name(function_name)
             .payload(blob)
+            .invocation_type(aws_sdk_lambda::model::InvocationType::Event)
             .send()
             .await?;
-
         // println!("Response from invoke: {:#?}", response);
-
         Ok(())
     }
 }

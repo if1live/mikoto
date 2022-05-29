@@ -9,6 +9,7 @@ cmd = "./hello"
 
 [env]
 PORT = "8080"
+RUST_LOG = "info"
 
 [[services]]
 internal_port = 8080
