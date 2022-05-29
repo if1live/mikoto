@@ -50,6 +50,8 @@ functions:
     handler: src/index.amqp_enqueue
   commonDequeue:
     handler: src/index.common_dequeue
+    maximumEventAge: 7200
+    maximumRetryAttempts: 0
     events:
       - sqs:
           arn: ${self:custom.sqsDemo}
