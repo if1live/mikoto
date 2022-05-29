@@ -117,6 +117,7 @@ async fn main_amqp(
             .unwrap();
 
         consumer.set_delegate(move |delivery: DeliveryResult| {
+            let queue_name0 = queue_name.clone();
             let function_name0 = function_name.clone();
             let config1 = config0.clone();
 
@@ -140,6 +141,8 @@ async fn main_amqp(
                 let client = aws_sdk_lambda::Client::new(&config1);
                 let lambda = MyAwsLambda::new(client);
                 let _result = lambda.invoke(&function_name0, &event_bytes).await;
+
+                info!("queue:{} = function:{}", queue_name0, function_name0);
 
                 delivery
                     .ack(BasicAckOptions::default())

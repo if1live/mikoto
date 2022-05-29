@@ -1,9 +1,12 @@
 use anyhow::Result;
-use aws_sdk_lambda::Region;
+use aws_sdk_lambda::{Region, RetryConfig};
 use aws_smithy_http::endpoint::Endpoint;
+use aws_smithy_types::timeout;
+use aws_smithy_types::tristate::TriState;
 use aws_types::{credentials::SharedCredentialsProvider, Credentials, SdkConfig};
 use std::env;
 use std::sync::Arc;
+use std::time::Duration;
 use warp::hyper::Uri;
 
 pub struct MyAwsConfig {}
@@ -27,7 +30,7 @@ impl MyAwsConfig {
             "local",
         );
 
-        let mut builder = SdkConfig::builder();
+        let mut builder = Self::skel();
         builder.set_region(region);
         builder.set_endpoint_resolver(Some(Arc::new(endpoint)));
         builder.set_credentials_provider(Some(SharedCredentialsProvider::new(credential)));
@@ -49,10 +52,25 @@ impl MyAwsConfig {
         let aws_region = env::var("AWS_REGION").unwrap();
         let region = Region::new(aws_region);
 
-        let mut builder = SdkConfig::builder();
+        let mut builder = Self::skel();
         builder.set_region(region);
         builder.set_credentials_provider(Some(SharedCredentialsProvider::new(credentials)));
         builder.build()
+    }
+
+    fn skel() -> aws_types::sdk_config::Builder {
+        let retry_config = RetryConfig::new().with_max_attempts(1);
+
+        let api_timeout_config = timeout::Api::new()
+            .with_call_attempt_timeout(TriState::Set(Duration::from_secs(2)))
+            .with_call_timeout(TriState::Set(Duration::from_secs(5)));
+        let timeout_config = timeout::Config::new().with_api_timeouts(api_timeout_config);
+
+        let mut builder = SdkConfig::builder();
+        builder.set_retry_config(Some(retry_config));
+        builder.set_timeout_config(Some(timeout_config));
+        builder.set_sleep_impl(None);
+        builder
     }
 }
 
