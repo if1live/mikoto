@@ -216,7 +216,6 @@ impl MyAwsLambda {
             .invocation_type(aws_sdk_lambda::model::InvocationType::Event)
             .send()
             .await?;
-        // println!("Response from invoke: {:#?}", response);
         Ok(())
     }
 }
