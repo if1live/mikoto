@@ -52,10 +52,14 @@ functions:
     handler: src/index.common_dequeue
     maximumEventAge: 7200
     maximumRetryAttempts: 0
-    events:
-      - sqs:
-          arn: ${self:custom.sqsDemo}
-          enabled: true
+    # events:
+    #   - sqs:
+    #       arn: ${self:custom.sqsDemo}
+    #       enabled: true
+  commonDequeue2:
+    handler: src/index.common_dequeue
+    maximumEventAge: 7200
+    maximumRetryAttempts: 0
 
 resources:
   Resources:

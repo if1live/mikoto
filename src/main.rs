@@ -29,11 +29,18 @@ async fn main() {
     let config = MyAwsConfig::new("env").await;
     info!("aws_config={:?}", config);
 
+    // TODO: 설정파일로 뺴기
     let definition = MikotoDefinition {
-        queues: vec![QueueDefinition {
-            queue: "hello".to_string(),
-            function_name: "mikoto-sample-dev-commonDequeue".to_string(),
-        }],
+        queues: vec![
+            QueueDefinition {
+                queue: "foo".to_string(),
+                function_name: "mikoto-sample-dev-commonDequeue".to_string(),
+            },
+            QueueDefinition {
+                queue: "bar".to_string(),
+                function_name: "mikoto-sample-dev-commonDequeue2".to_string(),
+            },
+        ],
     };
 
     let rabbitmq_uri = match env::var("RABBITMQ_URI") {
@@ -53,7 +60,7 @@ async fn main() {
 
     let _result = join!(
         main_http(&config_http),
-        main_amqp(config_amqp, connection, &definition),
+        main_amqp(&config_amqp, connection, &definition),
     );
 }
 
@@ -75,7 +82,7 @@ async fn main_http(_config: &SdkConfig) -> Result<()> {
 
 #[allow(unused)]
 async fn main_amqp(
-    config: SdkConfig,
+    config: &SdkConfig,
     mut connection: Connection,
     definition: &MikotoDefinition,
 ) -> Result<()> {
@@ -83,61 +90,64 @@ async fn main_amqp(
     // let client = aws_sdk_lambda::Client::new(config);
     // let lambda = MyAwsLambda::new(client);
 
-    let queue_name = "hello";
-    let function_name = "mikoto-sample-dev-commonDequeue";
-
     let channel = connection.create_channel().await.unwrap();
 
-    let _queue = channel
-        .queue_declare(
-            queue_name,
-            QueueDeclareOptions::default(),
-            FieldTable::default(),
-        )
-        .await
-        .unwrap();
+    for item in definition.queues.iter() {
+        let queue_name = item.queue.clone();
+        let function_name = item.function_name.clone();
+        let config0 = config.clone();
 
-    let consumer = channel
-        .basic_consume(
-            queue_name,
-            "tag_foo",
-            BasicConsumeOptions::default(),
-            FieldTable::default(),
-        )
-        .await
-        .unwrap();
-
-    consumer.set_delegate(move |delivery: DeliveryResult| async move {
-        let delivery = match delivery {
-            // Carries the delivery alongside its channel
-            Ok(Some(delivery)) => {
-                println!("{:?}", delivery);
-                delivery
-            }
-            // The consumer got canceled
-            Ok(None) => return,
-            // Carries the error and is always followed by Ok(None)
-            Err(error) => {
-                dbg!("Failed to consume queue message {}", error);
-                return;
-            }
-        };
-
-        // Do something with the delivery data (The message payload)
-        let event_text = MyRabbitEvent::to_string(&delivery);
-        let event_bytes = event_text.into_bytes();
-
-        delivery
-            .ack(BasicAckOptions::default())
+        let _queue = channel
+            .queue_declare(
+                &queue_name,
+                QueueDeclareOptions::default(),
+                FieldTable::default(),
+            )
             .await
-            .expect("Failed to ack send_webhook_event message");
+            .unwrap();
 
-        // TODO: 더 멀쩡하게 aws 설정 갖다쓰기?
-        let config = MyAwsConfig::new("env").await;
-        let client = aws_sdk_lambda::Client::new(&config);
-        let lambda = MyAwsLambda::new(client);
-        let _result = lambda.invoke(function_name, &event_bytes).await;
-    });
+        let consumer = channel
+            .basic_consume(
+                &queue_name,
+                "",
+                BasicConsumeOptions::default(),
+                FieldTable::default(),
+            )
+            .await
+            .unwrap();
+
+        consumer.set_delegate(move |delivery: DeliveryResult| {
+            let function_name0 = function_name.clone();
+            let config1 = config0.clone();
+
+            async move {
+                let delivery = match delivery {
+                    // Carries the delivery alongside its channel
+                    Ok(Some(delivery)) => delivery,
+                    // The consumer got canceled
+                    Ok(None) => return,
+                    // Carries the error and is always followed by Ok(None)
+                    Err(error) => {
+                        dbg!("Failed to consume queue message {}", error);
+                        return;
+                    }
+                };
+
+                // Do something with the delivery data (The message payload)
+                let event_text = MyRabbitEvent::to_string(&delivery);
+                let event_bytes = event_text.into_bytes();
+
+                let client = aws_sdk_lambda::Client::new(&config1);
+                let lambda = MyAwsLambda::new(client);
+                let _result = lambda.invoke(&function_name0, &event_bytes).await;
+
+                delivery
+                    .ack(BasicAckOptions::default())
+                    .await
+                    .expect("Failed to ack send_webhook_event message");
+            }
+        });
+    }
 
     Ok(())
 }
