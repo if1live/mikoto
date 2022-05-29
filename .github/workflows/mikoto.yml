@@ -1,8 +1,14 @@
 name: mikoto
 
 on:
-  - push
-  - pull_request
+  pull_request:
+  push:
+    branches:
+      - main
+
+env:
+  FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+  RUST_BACKTRACE: 1
 
 jobs:
   build:
@@ -21,16 +27,36 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - uses: superfly/flyctl-actions/setup-flyctl@master
       - uses: actions-rs/toolchain@v1
         with:
+          profile: minimal
           toolchain: stable
 
-      - uses: actions-rs/cargo@v1
+      - name: check
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+
+      - name: test
+        uses: actions-rs/cargo@v1
         with:
           command: test
 
-      - uses: actions-rs/cargo@v1
+  deploy:
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+
+    needs: [build]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions-rs/toolchain@v1
         with:
-          command: build
-          args: --release
+          profile: minimal
+          toolchain: stable
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: deploy
+        run: flyctl deploy --remote-only
