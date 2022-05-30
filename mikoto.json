@@ -1,0 +1,12 @@
+{
+  "queues": [
+    {
+      "queue": "foo",
+      "function_name": "mikoto-sample-dev-commonDequeue"
+    },
+    {
+      "queue": "bar",
+      "function_name": "mikoto-sample-dev-commonDequeue2"
+    }
+  ]
+}

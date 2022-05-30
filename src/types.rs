@@ -1,18 +1,31 @@
 use aws_lambda_events::event::rabbitmq::{RabbitMqBasicProperties, RabbitMqEvent, RabbitMqMessage};
+use config::{Config, ConfigError, File};
 use lapin::message::Delivery;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::json;
 use std::collections::HashMap;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct QueueDefinition {
     pub queue: String,
     pub function_name: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct MikotoDefinition {
+#[derive(Debug, Clone, Deserialize)]
+#[allow(unused)]
+pub struct Settings {
     pub queues: Vec<QueueDefinition>,
+}
+
+impl Settings {
+    pub fn new() -> Result<Self, ConfigError> {
+        let s = Config::builder()
+            .add_source(File::with_name("mikoto"))
+            .build()?;
+
+        // You can deserialize (and thus freeze) the entire configuration as
+        s.try_deserialize()
+    }
 }
 
 pub struct MyRabbitEvent {}

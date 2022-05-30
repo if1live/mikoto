@@ -18,7 +18,7 @@ mod my_aws;
 mod types;
 
 use my_aws::{MyAwsConfig, MyAwsLambda};
-use types::{MikotoDefinition, MyRabbitEvent, QueueDefinition};
+use types::{MyRabbitEvent, Settings};
 
 #[macro_use]
 extern crate log;
@@ -33,22 +33,14 @@ async fn main() {
         Ok(config) => config,
         Err(err) => panic!("{:?}", err),
     };
-
     info!("aws_config={:?}", config);
 
-    // TODO: 설정파일로 뺴기
-    let definition = MikotoDefinition {
-        queues: vec![
-            QueueDefinition {
-                queue: "foo".to_string(),
-                function_name: "mikoto-sample-dev-commonDequeue".to_string(),
-            },
-            QueueDefinition {
-                queue: "bar".to_string(),
-                function_name: "mikoto-sample-dev-commonDequeue2".to_string(),
-            },
-        ],
+    let settings = Settings::new();
+    let settings = match settings {
+        Ok(settings) => settings,
+        Err(err) => panic!("{:?}", err),
     };
+    info!("settings={:?}", settings);
 
     let rabbitmq_uri = match env::var("RABBITMQ_URI") {
         Ok(uri) => uri,
@@ -67,7 +59,7 @@ async fn main() {
 
     let _result = join!(
         main_http(&config_http),
-        main_amqp(&config_amqp, connection, &definition),
+        main_amqp(&config_amqp, connection, settings.clone()),
     );
 }
 
@@ -91,7 +83,7 @@ async fn main_http(_config: &SdkConfig) -> Result<()> {
 async fn main_amqp(
     config: &SdkConfig,
     mut connection: Connection,
-    definition: &MikotoDefinition,
+    settings: Settings,
 ) -> Result<()> {
     // TODO: aws client 재사용하면 http 소켓 연결을 재사용할 수 있을거같은데
     // let client = aws_sdk_lambda::Client::new(config);
@@ -99,7 +91,7 @@ async fn main_amqp(
 
     let channel = connection.create_channel().await.unwrap();
 
-    for item in definition.queues.iter() {
+    for item in settings.queues.iter() {
         let queue_name = item.queue.clone();
         let function_name = item.function_name.clone();
         let config0 = config.clone();

@@ -34,5 +34,6 @@ WORKDIR /app
 
 # Get compiled binaries from builder's cargo install directory
 COPY --from=builder /usr/local/cargo/bin/hello /app/hello
+COPY mikoto.json /app/mikoto.json
 
 # No CMD or ENTRYPOINT, see fly.toml with `cmd` override.
