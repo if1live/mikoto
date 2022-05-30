@@ -1,6 +1,7 @@
 #![deny(warnings)]
 use anyhow::Result;
 use aws_types::SdkConfig;
+use dotenv::dotenv;
 use lapin::{
     message::DeliveryResult,
     options::{BasicAckOptions, BasicConsumeOptions, QueueDeclareOptions},
@@ -24,9 +25,15 @@ extern crate log;
 
 #[tokio::main]
 async fn main() {
+    dotenv().ok();
     env_logger::init();
 
-    let config = MyAwsConfig::new("env").await;
+    let config = MyAwsConfig::new();
+    let config = match config {
+        Ok(config) => config,
+        Err(err) => panic!("{:?}", err),
+    };
+
     info!("aws_config={:?}", config);
 
     // TODO: 설정파일로 뺴기

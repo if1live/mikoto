@@ -11,35 +11,12 @@ use warp::hyper::Uri;
 
 pub struct MyAwsConfig {}
 impl MyAwsConfig {
-    pub async fn new(origin: &str) -> aws_types::SdkConfig {
-        match origin {
-            "env" => MyAwsConfig::from_env(),
-            "offline" => MyAwsConfig::from_offline(),
-            _ => MyAwsConfig::from_offline(),
-        }
-    }
+    pub fn new() -> Result<aws_types::SdkConfig> {
+        let aws_region = env::var("AWS_REGION")?;
+        let region = Region::new(aws_region);
 
-    pub fn from_offline() -> aws_types::SdkConfig {
-        let region = Region::new("local");
-        let endpoint = Endpoint::immutable(Uri::from_static("http://localhost:3002/"));
-        let credential = Credentials::new(
-            "localAccessKey",
-            "localSecretAccessKey",
-            None,
-            None,
-            "local",
-        );
-
-        let mut builder = Self::skel();
-        builder.set_region(region);
-        builder.set_endpoint_resolver(Some(Arc::new(endpoint)));
-        builder.set_credentials_provider(Some(SharedCredentialsProvider::new(credential)));
-        builder.build()
-    }
-
-    pub fn from_env() -> aws_types::SdkConfig {
-        let aws_access_key_id = env::var("AWS_ACCESS_KEY_ID").unwrap();
-        let aws_access_secret_key = env::var("AWS_ACCESS_SECRET_KEY").unwrap();
+        let aws_access_key_id = env::var("AWS_ACCESS_KEY_ID")?;
+        let aws_access_secret_key = env::var("AWS_ACCESS_SECRET_KEY")?;
 
         let credentials = Credentials::new(
             aws_access_key_id,
@@ -49,16 +26,14 @@ impl MyAwsConfig {
             "local",
         );
 
-        let aws_region = env::var("AWS_REGION").unwrap();
-        let region = Region::new(aws_region);
+        let aws_url = match env::var("AWS_URL") {
+            Ok(url) => match url.parse::<Uri>() {
+                Ok(uri) => Some(uri),
+                Err(_) => None,
+            },
+            Err(_) => None,
+        };
 
-        let mut builder = Self::skel();
-        builder.set_region(region);
-        builder.set_credentials_provider(Some(SharedCredentialsProvider::new(credentials)));
-        builder.build()
-    }
-
-    fn skel() -> aws_types::sdk_config::Builder {
         let retry_config = RetryConfig::new().with_max_attempts(1);
 
         let api_timeout_config = timeout::Api::new()
@@ -67,10 +42,21 @@ impl MyAwsConfig {
         let timeout_config = timeout::Config::new().with_api_timeouts(api_timeout_config);
 
         let mut builder = SdkConfig::builder();
+
+        builder.set_region(region);
+        builder.set_credentials_provider(Some(SharedCredentialsProvider::new(credentials)));
+
+        if let Some(uri) = aws_url {
+            let endpoint = Endpoint::immutable(uri);
+            builder.set_endpoint_resolver(Some(Arc::new(endpoint)));
+        }
+
         builder.set_retry_config(Some(retry_config));
         builder.set_timeout_config(Some(timeout_config));
         builder.set_sleep_impl(None);
-        builder
+
+        let config = builder.build();
+        Ok(config)
     }
 }
 
