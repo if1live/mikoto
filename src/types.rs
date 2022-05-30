@@ -73,7 +73,6 @@ impl MyRabbitEvent {
             expiration: unwrap_string(delivery.properties.expiration()),
             message_id: unwrap_string(delivery.properties.message_id()),
             timestamp,
-            // type과 제일 비슷해보이길래 kind를 연결
             type_: unwrap_string(delivery.properties.kind()),
             user_id: unwrap_string(delivery.properties.user_id()),
             app_id: unwrap_string(delivery.properties.app_id()),
@@ -90,7 +89,7 @@ impl MyRabbitEvent {
 
         let event = RabbitMqEvent {
             event_source: Some("aws:rmq".to_string()),
-            event_source_arn: Some("arn:aws:mq:us-east-1:123456789012:broker:mikoto:b-af0b701e-db74-11ec-9d64-0242ac120002".to_string()),
+            event_source_arn: Some("arn:aws:mq:us-east-1:123456789012:broker:mikoto:b-12345678-1234-1234-1234-123456789012".to_string()),
             messages_by_queue: HashMap::from([
                 (delivery.routing_key.to_string(), vec![message]),
             ]),
