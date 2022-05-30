@@ -3,6 +3,12 @@ edition = "2021"
 name = "hello"
 version = "0.1.0"
 
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+opt-level = 1
+
 [dependencies]
 anyhow = "1.0.57"
 aws-sdk-lambda = "0.12.0"
